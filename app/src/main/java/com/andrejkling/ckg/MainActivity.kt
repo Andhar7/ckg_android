@@ -103,7 +103,27 @@ private fun BooksTab(onFullScreenChange: (Boolean) -> Unit) {
     var openBook by remember { mutableStateOf<Book?>(null) }
     var editing by remember { mutableStateOf<Book?>(null) }
 
-    onFullScreenChange(showingLibrary || showingForm || openBook != null)
+    onFullScreenChange(showingLibrary || showingForm || openBook != null || editing != null)
+    // Edit opens the same form, filled with the book, and Update saves the change in place
+    editing?.let { book ->
+        BookFormScreen(
+            initialTitle = book.title,
+            initialAuthor = book.author,
+            initialText = book.synopsis,
+            isUpdating = true,
+            onCancel = { editing = null },
+            onSave = { title, author, text ->
+                val updated = book.copy(title = title, author = author, synopsis = text)
+                val index = books.indexOfFirst { it.id == book.id }
+                if (index >= 0) books[index] = updated
+                books.sortBy { it.title }
+                store.save(books.toList())
+                editing = null
+                openBook = updated
+            }
+        )
+        return
+    }
     openBook?.let { current ->
         BookDetailScreen(
             book = current,

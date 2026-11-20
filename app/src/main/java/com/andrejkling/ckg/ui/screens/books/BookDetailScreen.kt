@@ -9,19 +9,26 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -110,15 +117,16 @@ fun BookDetailScreen(
                 Text(book.title, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 24.sp)
                 Text("By ${book.author}", color = Color.White.copy(alpha = 0.7f), fontSize = 15.sp)
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Pill("Share") {
+                // Two equal pills that share the row, like the iOS HStack with pillStyle()
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Pill("Share", Icons.Filled.Share) {
                         val send = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, text)
                         }
                         context.startActivity(Intent.createChooser(send, null))
                     }
-                    Pill("Edit", onClick = onEdit)
+                    Pill("Edit", Icons.Filled.Edit, onClick = onEdit)
                 }
             }
         }
@@ -184,19 +192,21 @@ fun BookDetailScreen(
     }
 }
 
+// Share and Edit share one size, so both pills look the same, like the iOS pillStyle()
 @Composable
-private fun Pill(label: String, onClick: () -> Unit) {
-    Text(
-        text = label,
-        color = Accent,
-        fontSize = 15.sp,
-        fontWeight = FontWeight.SemiBold,
-        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+private fun RowScope.Pill(label: String, icon: ImageVector, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
-            .width(110.dp)
+            .weight(1f)
+            .height(38.dp)
             .clip(RoundedCornerShape(50))
             .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(50))
-            .clickable(onClick = onClick)
-            .padding(vertical = 9.dp)
-    )
+            .clickable(onClick = onClick),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = Accent, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = Accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+    }
 }
