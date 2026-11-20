@@ -39,6 +39,7 @@ import com.andrejkling.ckg.ui.components.FloatingTabBar
 import com.andrejkling.ckg.ui.screens.aphorism.AphorismDetailScreen
 import com.andrejkling.ckg.ui.screens.aphorism.AphorismHomeScreen
 import com.andrejkling.ckg.ui.screens.aphorism.FavouritesScreen
+import com.andrejkling.ckg.ui.screens.books.BookDetailScreen
 import com.andrejkling.ckg.ui.screens.books.BookFormScreen
 import com.andrejkling.ckg.ui.screens.books.LibraryScreen
 import com.andrejkling.ckg.ui.screens.books.BooksListScreen
@@ -99,8 +100,30 @@ private fun BooksTab(onFullScreenChange: (Boolean) -> Unit) {
     val books = remember { mutableStateListOf<Book>().apply { addAll(store.load().sortedBy { it.title }) } }
     var showingLibrary by remember { mutableStateOf(false) }
     var showingForm by remember { mutableStateOf(false) }
+    var openBook by remember { mutableStateOf<Book?>(null) }
+    var editing by remember { mutableStateOf<Book?>(null) }
 
-    onFullScreenChange(showingLibrary || showingForm)
+    onFullScreenChange(showingLibrary || showingForm || openBook != null)
+    openBook?.let { current ->
+        BookDetailScreen(
+            book = current,
+            onBack = { openBook = null },
+            onEdit = { editing = current },
+            onDelete = {
+                books.remove(current)
+                store.save(books.toList())
+                openBook = null
+            },
+            onSaveText = { newText ->
+                val updated = current.copy(synopsis = newText)
+                val index = books.indexOfFirst { it.id == current.id }
+                if (index >= 0) books[index] = updated
+                store.save(books.toList())
+                openBook = updated
+            }
+        )
+        return
+    }
     if (showingLibrary) {
         // Add a book opens the library first; Create book closes it and opens the form (like iOS)
         LibraryScreen(
@@ -128,7 +151,7 @@ private fun BooksTab(onFullScreenChange: (Boolean) -> Unit) {
     BooksListScreen(
         books = books.toList(),
         onAdd = { showingLibrary = true },
-        onOpen = {},         // detail comes in a later step
+        onOpen = { openBook = it },
         onEdit = {},         // edit comes with the form
         onDelete = { book ->
             books.remove(book)
