@@ -39,6 +39,8 @@ import com.andrejkling.ckg.ui.components.FloatingTabBar
 import com.andrejkling.ckg.ui.screens.aphorism.AphorismDetailScreen
 import com.andrejkling.ckg.ui.screens.aphorism.AphorismHomeScreen
 import com.andrejkling.ckg.ui.screens.aphorism.FavouritesScreen
+import com.andrejkling.ckg.ui.screens.books.BookFormScreen
+import com.andrejkling.ckg.ui.screens.books.LibraryScreen
 import com.andrejkling.ckg.ui.screens.books.BooksListScreen
 import com.andrejkling.ckg.ui.theme.Accent
 import com.andrejkling.ckg.ui.theme.CKGTheme
@@ -65,17 +67,18 @@ fun CKGApp() {
     // Same order as the iOS tab bar: Books first
     var tab by remember { mutableIntStateOf(0) }
     var aphorismCardOpen by remember { mutableStateOf(false) }
+    var booksFormOpen by remember { mutableStateOf(false) }
 
     CKGBackground {
         Box(Modifier.fillMaxSize()) {
             when (tab) {
-                0 -> BooksTab()
+                0 -> BooksTab(onFullScreenChange = { booksFormOpen = it })
                 1 -> ComingSoon("Music")      // next steps
                 2 -> AphorismsTab(onFullScreenChange = { aphorismCardOpen = it })
                 3 -> ComingSoon("Club")       // next steps
             }
             // Hidden on the Aphorism card and saved list, as the iOS app hides its tab bar there
-            if (!aphorismCardOpen) {
+            if (!aphorismCardOpen && !booksFormOpen) {
                 FloatingTabBar(selected = tab, onSelect = { tab = it })
             }
         }
@@ -90,14 +93,41 @@ private fun ComingSoon(name: String) {
 }
 
 @Composable
-private fun BooksTab() {
+private fun BooksTab(onFullScreenChange: (Boolean) -> Unit) {
     val context = LocalContext.current
     val store = remember { BooksStore(context) }
     val books = remember { mutableStateListOf<Book>().apply { addAll(store.load().sortedBy { it.title }) } }
+    var showingLibrary by remember { mutableStateOf(false) }
+    var showingForm by remember { mutableStateOf(false) }
+
+    onFullScreenChange(showingLibrary || showingForm)
+    if (showingLibrary) {
+        // Add a book opens the library first; Create book closes it and opens the form (like iOS)
+        LibraryScreen(
+            onClose = { showingLibrary = false },
+            onCreate = {
+                showingLibrary = false
+                showingForm = true
+            }
+        )
+        return
+    }
+    if (showingForm) {
+        BookFormScreen(
+            onCancel = { showingForm = false },
+            onSave = { title, author, text ->
+                books.add(Book(title = title, author = author, synopsis = text))
+                books.sortBy { it.title }
+                store.save(books.toList())
+                showingForm = false
+            }
+        )
+        return
+    }
 
     BooksListScreen(
         books = books.toList(),
-        onAdd = {},          // library and form come in the next step
+        onAdd = { showingLibrary = true },
         onOpen = {},         // detail comes in a later step
         onEdit = {},         // edit comes with the form
         onDelete = { book ->
